@@ -15,14 +15,21 @@ def inicializa():
 
 def binario_para_decimal(valor_binario, tamanho_valor):
 
-	valor_binario_str = str(valor_binario)
 	valor_decimal = 0
 	cont = tamanho_valor - 1
+	inicio = 0
+
+	if tamanho_valor > 30:
+		inicio = 1
+		cont = cont - 2
 
 	# range(0,5) - 0 ate 4
-	for i in range(0,tamanho_valor):
-		if(valor_binario_str[i] == '1'):
+	for i in range(inicio,tamanho_valor):
+
+		if valor_binario[i] == '1' or valor_binario[i] == 1:
 			valor_decimal = valor_decimal + pow(2,cont)
+
+
 		cont = cont - 1
 
 	return valor_decimal
@@ -63,16 +70,17 @@ def obter_instrucao(instrucao):
 
 def write_cache(novo_dado,posicao_para_atualizar_dado):
 	'''Se deu miss, escrevo o novo dado na cache'''
-	dados = open('cache.txt','w')
+	dados = open('cache.txt','r')
 	dados_cache = dados.readlines()
-
+	escreve = open('cache.txt','w')
 	for linha in dados_cache:
 		if linha is dados_cache[posicao_para_atualizar_dado]:
-			dados.write(str(novo_dado)+'\n')
-		else:
-			dados.write(linha)
+			escreve.write(novo_dado)
+		elif linha != '\n':
+			escreve.write(linha)
 
-	novo_fila.close()
+	dados.close()
+	escreve.close()
 
 def cache(registro,tag,validade):
 
@@ -105,12 +113,17 @@ def cache(registro,tag,validade):
 	* tag[posicao_cache] = tag do registro
 	* escrever o dado na memoria cache
 	'''
-
+	print('')
+	'''
+	print('Pos cache = ',posicao_cache)
+	print('Registro tag = ',registro_tag)
+	print('Tag = ',tag[posicao_cache])
+	'''
 	if validade[posicao_cache] == 1:
 
-		if registro_tag is tag[posicao_cache]:
+		if registro_tag == tag[posicao_cache]:
 			peguei_valor_da_cache = True
-			valor_da_cache = int(dados[posicao_cache])
+			valor_da_cache = dados[posicao_cache]
 			print("Hit")
 		else:
 			tag[posicao_cache] = registro_tag
@@ -122,6 +135,9 @@ def cache(registro,tag,validade):
 		peguei_valor_da_cache = False
 		print("Miss")
 
+	print('TAG = ',tag)
+	print('Validade = ',validade)
+
 	return tag,validade,valor_da_cache,peguei_valor_da_cache
 
 def registros(instrucao):
@@ -132,22 +148,20 @@ def registros(instrucao):
 	rd = [' ',' ',' ',' ',' ']
 	j = 0
 
-	print('Type rs = ',type(rs))
-
 	for i in range(6,11):
-		rs[j] = instrucao[i]
+		rs[j] = str(instrucao[i])
 		j = j + 1
 
 	j = 0
 
 	for i in range(11,16):
-		rt[j] = instrucao[i]
+		rt[j] = str(instrucao[i])
 		j = j + 1
 
 	j = 0
 
 	for i in range(16,21):
-		rd[j] = instrucao[i]
+		rd[j] = str(instrucao[i])
 		j = j + 1
 
 	return rs,rt,rd
@@ -155,8 +169,8 @@ def registros(instrucao):
 def write_arquivo(nome_arquivo):
 	'''escrevendo as instrucoes na memoria de programa'''
 	novo_fila = open(nome_arquivo,'w')
-	novo_fila.write('00000000001000100001101100000001\n')
-	novo_fila.write('00000000001000100010001100000010\n')
+	novo_fila.write('00000000101000100001101100000001\n')
+	novo_fila.write('00000000010000100010001100000010\n')
 	novo_fila.close()
 
 def executar(rs,rt,funct):
@@ -166,20 +180,20 @@ def executar(rs,rt,funct):
 
 	if funct is op_soma:
 		resultado = rs + rt
+		print('A = ',rs)
+		print('B = ',rt)
+		print('SOMA -> A + B = ',resultado)
 	elif funct is op_sub:
 		resultado = rs - rt
+		print('A = ',rs)
+		print('B = ',rt)
+		print('SUB -> A - B = ',resultado)
 	else:
 		print('Nao fez nada!')
-
-
-	print('Resultado = %d\n',resultado)
 
 	return resultado
 
 def load(rs,rt,tag,validade):
-
-	print('RS = ',rs)
-	print('RT = ',rt)
 
 	'''
 	A = true ----- RS existe na cache
@@ -211,6 +225,10 @@ def load(rs,rt,tag,validade):
 		rt_binario = dados_memoria_principal[rt_pos_memoria_principal]
 		rt_decimal = binario_para_decimal(rt_binario,len(rt_binario))
 
+		# atualizando os dados na m_cache
+		posicao_cache = binario_para_decimal(rt,len(rt)-2)
+		write_cache(rt_binario,posicao_cache)
+
 		m_dados.close()
 
 		if rs_cache[0] is '1':
@@ -220,15 +238,16 @@ def load(rs,rt,tag,validade):
 
 		return rs_decimal,rt_decimal,tag,validade
 
-
-
 	elif b == True:
 
 		rt_decimal = binario_para_decimal(rt_cache,len(rt_cache))
-
 		rs_pos_memoria_principal = binario_para_decimal(rs,len(rs))
 		rs_binario = dados_memoria_principal[rs_pos_memoria_principal]
 		rs_decimal = binario_para_decimal(rs_binario,len(rs_binario))
+
+		# atualizando os dados na m_cache
+		posicao_cache = binario_para_decimal(rs,len(rs)-2)
+		write_cache(rs_binario,posicao_cache)
 
 		m_dados.close()
 
@@ -241,14 +260,20 @@ def load(rs,rt,tag,validade):
 
 	else:
 
-		rt_pos_memoria_principal = binario_para_decimal(rt,len(rt))
-		print('Pos RT = ',rt_pos_memoria_principal)
+		rt_pos_memoria_principal = binario_para_decimal(rt,len(rt)) -1
 		rt_binario = dados_memoria_principal[rt_pos_memoria_principal]
 		rt_decimal = binario_para_decimal(rt_binario,len(rt_binario))
 
-		rs_pos_memoria_principal = binario_para_decimal(rs,len(rs))
+		rs_pos_memoria_principal = binario_para_decimal(rs,len(rs)) -1
 		rs_binario = dados_memoria_principal[rs_pos_memoria_principal]
 		rs_decimal = binario_para_decimal(rs_binario,len(rs_binario))
+
+		# atualizando os dados na m_cache
+		posicao_cache = binario_para_decimal(rt,len(rt)-2)
+		write_cache(rt_binario,posicao_cache)
+
+		posicao_cache = binario_para_decimal(rs,len(rs)-2)
+		write_cache(rs_binario,posicao_cache)
 
 		m_dados.close()
 
@@ -261,9 +286,9 @@ def load(rs,rt,tag,validade):
 
 def store(resultado,rd,sinal):
 	'''funcao que salva os dados na memoria de dados'''
-
-	text_arquivo = open('dados.txt','r')
-	texto = text_arquivo.readlines()
+	txt = open('dados.txt','r')
+	texto = txt.readlines()
+	txt.close()
 	escrever = open('dados.txt','w')
 	rd = binario_para_decimal(rd,len(rd))
 
@@ -287,7 +312,6 @@ def store(resultado,rd,sinal):
 		else:
 			escrever.write(linha)
 
-	text_arquivo.close()
 	escrever.close()
 
 def tamanho_pc(nome_arquivo):
